@@ -1,0 +1,26 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16
+    container_name: admin-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: adminservice
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  admin-service:
+    build: .
+    container_name: admin-service
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+volumes:
+  pgdata: {}
