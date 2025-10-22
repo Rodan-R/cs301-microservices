@@ -22,28 +22,40 @@ function generateTempPassword() {
 }
 
 export async function cognitoCreateUser({ email, firstName, lastName, role }) {
+  // 1. Create the user in Cognito
   const create = await client.send(
     new AdminCreateUserCommand({
       UserPoolId: USER_POOL_ID,
       Username: email,
       UserAttributes: [
-        { Name: 'email', Value: email },
-        { Name: 'email_verified', Value: 'true' },
-        { Name: 'custom:firstName', Value: firstName },
-        { Name: 'custom:lastName', Value: lastName }
+        { Name: "email", Value: email },
+        { Name: "email_verified", Value: "true" },
+        { Name: "custom:firstName", Value: firstName },
+        { Name: "custom:lastName", Value: lastName },
       ],
+      // A temp password is still required by the API, but it’ll be replaced immediately
       TemporaryPassword: generateTempPassword(),
-      MessageAction: 'SUPPRESS' // don’t email by default; handle in UI
+      MessageAction: "SUPPRESS", // Don't send the default "temporary password" email
     })
   );
-  // add to group
+
+  // 2. Add user to the correct group (admin or agent)
   await client.send(
     new AdminAddUserToGroupCommand({
       UserPoolId: USER_POOL_ID,
       Username: email,
-      GroupName: role // 'admin' or 'agent'
+      GroupName: role,
     })
   );
+
+  // 3. Immediately send a "reset password / set password" email
+  await client.send(
+    new AdminResetUserPasswordCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: email,
+    })
+  );
+
   return create;
 }
 
