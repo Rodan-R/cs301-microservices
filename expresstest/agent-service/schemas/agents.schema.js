@@ -4,7 +4,7 @@ const uuid = z.string().uuid();
 
 // CREATE (POST /agents)
 // DB sets: agent_id, created_at
-// Me sets: deleted_ etc. fields ONLY updated via DELETE endpoint
+// Me sets: deleted_* ONLY via DELETE endpoint
 export const createAgentSchema = z.object({
   firstName: z.string().trim().min(1, "first_name is required"),
   lastName: z.string().trim().min(1, "last_name is required"),
@@ -14,29 +14,57 @@ export const createAgentSchema = z.object({
 });
 
 // UPDATE (PATCH /agents/:agent_id)
-// ONLY allow fields that exist and can change. Role fixed to 'agent' so NO CHANGE.
 export const updateAgentSchema = z.object({
-  first_name: z.string().trim().min(1).optional(),
-  last_name: z.string().trim().min(1).optional(),
+  firstName: z.string().trim().min(1).optional(),
+  lastName: z.string().trim().min(1).optional(),
   email: z.string().trim().email().transform(v => v.toLowerCase()).optional(),
+  agentID: uuid,
 }).refine(obj => Object.keys(obj).length > 0, {
   message: "Provide at least one field to update",
 });
 
-// PARAMS (e.g., /agents/:agent_id)
+// PARAMS (/agents/:agent_id)
 export const agentIdParams = z.object({
   agentID: uuid,
 });
 
-// SOFT DELETE (PATCH /agents/:agent_id/delete or smth???)
+// SOFT DELETE (PATCH /agents/:agent_id/delete or similar)
 export const softDeleteSchema = z.object({
-  deleted_by: uuid,
-  delete_reason: z.string().trim().min(1).optional(),
+  agentID: uuid,
+  deleteReason: z.string().trim().default("HR"),
 });
 
-// ???? LIST QUERY (/agents?page=&limit=)
+export const getallschema = z.object({
+  
+});
+
+export const searchSchema = z.object({
+  searchValue: z.string().trim().min(1).optional(),
+}).refine(
+  // obj => Object.keys(obj).length > 0, 
+  // { message: "Provide at least one field to search",}
+  d => d.searchValue,
+  { message: "No search was entered" }
+);
+
+export const getschema = z.object({
+  firstName: z.string().trim().min(1).optional(),
+  lastName: z.string().trim().min(1).optional(),
+  email: z.string().trim().email().transform(v => v.toLowerCase()).optional(),
+}).refine(
+  // obj => Object.keys(obj).length > 0, 
+  // { message: "Provide at least one field to search",}
+  d => d.firstName || d.lastName || d.email,
+  { message: "Provide at least one field to search" }
+);
+
+// (Optional) LIST QUERY (/agents?page=&limit=&include_deleted=)
 export const listAgentsQuery = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(25),
-  offset: z.coerce.number().int().min(20).max(100).default(25),
-});
+  limit: z.coerce.number().int().min(1).max(40).default(20),
+  // include_deleted: z.coerce.boolean().default(false),
+  offset: z.coerce.number().int().min(0).default(20)
+}).transform((data) => ({
+  ...data,
+  offset: data.offset ?? (data.limit - 20), // computed fallback
+}));

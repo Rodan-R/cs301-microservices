@@ -1,26 +1,45 @@
 import pool from "./pool.js";
 
+async function isElligible({adminID, agentID}) {
+  console.log({adminID, agentID});
+  try {
+    const query = `
+      SELECT EXISTS (
+        SELECT 1 FROM agents.agent_list WHERE agent_id = $1 AND admin_id = $2
+        AND deleted_at IS NULL
+      ) AS eligible;
+    `;
+
+    const {rows } = await pool.query(query, [agentID, adminID]);
+    return !!rows[0].eligible;
+  } catch (e) {
+    console.error('Error reading agent: ', e)
+      throw e;
+  }
+}
+
 async function createAgent({ firstName, lastName, email, adminID }) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     const insertQuery = `
-      INSERT INTO agents (first_name, last_name, email, role, admin_id)
+      INSERT INTO agents.agent_list (first_name, last_name, email, role, admin_id)
       VALUES ($1, $2, $3, $4, $5)
-      RETURNING id;
+      RETURNING agent_id;
     `;
 
     const values = [firstName, lastName, email, "agent", adminID];
     const result = await client.query(insertQuery, values);
 
-    const agentId = result.rows[0].id;
+    const agentId = result.rows[0].agent_id;
     
     await client.query("COMMIT");
     return agentId;
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
       throw e;
+      // next(e)
   } finally {
     client.release();
   }
@@ -31,9 +50,9 @@ async function getAgentByID({ agentID }) {
   const client = await pool.connect();
   try {
     const selectByIDQuery = `
-      SELECT id, first_name, last_name, email, role
-      FROM agents
-      WHERE id = $1;
+      SELECT agent_id, first_name, last_name, email, role
+      FROM agents.agent_list
+      WHERE agent_id = $1;
     `;
 
     const result = await client.query(selectByIDQuery, [agentID]);
@@ -52,8 +71,8 @@ async function getAllAgent({ agentID }) {
   const client = await pool.connect();
   try {
     const selectByIDQuery = `
-      SELECT id, first_name, last_name, email, role
-      FROM agents
+      SELECT agent_id, first_name, last_name, email, role
+      FROM agents.agent_list
     `;
 
     const result = await client.query(selectByIDQuery, [agentID]);
@@ -71,9 +90,10 @@ async function getAgentByIDByAdminID({ adminID, agentID }) {
   const client = await pool.connect();
   try {
     const selectByIDQuery = `
-      SELECT id, first_name, last_name, email, role
-      FROM agents
-      WHERE id = $1 AND admin_id = $2;
+      SELECT agent_id, first_name, last_name, email, role
+      FROM agents.agent_list
+      WHERE agent_id = $1 AND admin_id = $2
+      AND deleted_at IS NULL;
     `;
 
     const result = await client.query(selectByIDQuery, [agentID, adminID]);
@@ -87,20 +107,33 @@ async function getAgentByIDByAdminID({ adminID, agentID }) {
   }
 }
 
-// 1 page 20 clients
-async function getAllAgentByAdminID({ adminID, limit, offset }) {
+// Only returns matches in first column
+async function looseGetAgentByAdminID({ adminID, firstName, lastName, email }) {
+  // if (!(await isElligible(adminID, agentID))) throw new Error ('Not Elllgible');
   const client = await pool.connect();
   try {
+
     const selectByIDQuery = `
-      SELECT id, first_name, last_name, email, role
-      WHERE admin_id = $1
-      ORDER BY created_at DESC, agent_id DESC
-      LIMIT $2 OFFSET $3;
+      SELECT agent_id, first_name, last_name, email, role
+      FROM agents.agent_list
+      WHERE admin_id = $4
+        AND deleted_at IS NULL AND (
+              ($1::text   IS NOT NULL AND first_name ILIKE $1::text)
+          OR ($2::text    IS NOT NULL AND last_name  ILIKE $2::text)
+          OR ($3::citext  IS NOT NULL AND email      =     $3::citext)
+        );
     `;
+    //ORDER BY created_at DESC, agent_id DESC LIMIT 10;
 
-    const result = await client.query(selectByIDQuery, [adminID, limit, offset]);
 
-    return result.rows[0] || null;
+    const {rows} = await client.query(selectByIDQuery, [
+      firstName ? `%${firstName}%` : null,
+      lastName  ? `%${lastName }%` : null,
+      email ?? null,
+      adminID,
+    ]);
+    
+    return rows || null;
   } catch (e) {
     console.error('Error reading agent: ', e)
       throw e;
@@ -109,43 +142,113 @@ async function getAllAgentByAdminID({ adminID, limit, offset }) {
   }
 }
 
-async function isElligible(adminID, agentID) {
+async function searchAgentWithAdminID({ adminID, searchValue }) {
+  const client = await pool.connect();
   try {
-    const query = `
-      SELECT EXISTS (
-        SELECT 1 FROM agents WHERE id = $1 AND admin_id = $2
-      ) AS eligible;
-    `;
 
-    const result = await pool.query(query, [agentID, adminID]);
-    return result.rows[0].eligible;
+    const selectByIDQuery = `
+      SELECT agent_id, first_name, last_name, email, role
+      FROM agents.agent_list
+      WHERE admin_id = $2
+        AND deleted_at IS NULL AND (
+              (first_name ILIKE $1::text)
+          OR (last_name  ILIKE $1::text)
+          OR (email      ILIKE $1::citext)
+        );
+    `;
+    //ORDER BY created_at DESC, agent_id DESC LIMIT 10;
+
+    const { rows } = await client.query(selectByIDQuery, [
+      searchValue ? `%${searchValue}%` : null,
+      adminID,
+    ]);
+    
+    return rows || null;
   } catch (e) {
     console.error('Error reading agent: ', e)
       throw e;
+  } finally {
+    client.release();
   }
 }
 
-async function updateAgentByAdminID({ adminID, agentID, data }) {
-  if (!(await isElligible(adminID, agentID))) throw new Error ('Not Elllgible');
-
+async function strictGetAgentByAdminID({ adminID, firstName, lastName, email }) {
   const client = await pool.connect();
   try {
+
+    const selectByIDQuery = `
+      SELECT agent_id, first_name, last_name, email, role
+      FROM agents.agent_list
+      WHERE admin_id = $4 AND deleted_at IS NULL AND (
+        ($1::text         IS NOT NULL AND first_name ILIKE $1::text)
+          OR ($2::text    IS NOT NULL AND last_name ILIKE $2::text)
+          OR ($3::citext  IS NOT NULL AND email = $3::citext)
+          );
+    `;
+
+    const result = await client.query(selectByIDQuery, [firstName ?? null, lastName ?? null, email ?? null, adminID]);
+    
+    return result.rows[0] || null;
+  } catch (e) {
+    console.error('Error reading agent: ', e);
+      throw e;
+  } finally {
+    client.release();
+  }
+}
+
+// 1 page 20 clients
+async function getAllAgentByAdminID({ adminID, limit, offset }) {
+  const client = await pool.connect();
+  try {
+    const selectByIDQuery = `
+      SELECT agent_id, first_name, last_name, email, role
+      FROM agents.agent_list
+      WHERE admin_id = $1 AND deleted_at IS NULL 
+      ORDER BY created_at DESC, agent_id DESC
+      LIMIT $2 OFFSET $3;
+    `;
+
+    const {rows} = await client.query(selectByIDQuery, [adminID, limit, offset]);
+
+    return rows || null;
+  } catch (e) {
+    console.error('Error reading agent: ', e)
+      throw e;
+  } finally {
+    client.release();
+  }
+}
+
+function logQuery(sql, params) {
+  const numPlaceholders = (sql.match(/\$\d+/g) || []).length;
+  console.log({ numPlaceholders, paramsLength: params.length, params, preview: sql.slice(0, 120) });
+}
+
+async function updateAgentByAdminID({ adminID, agentID, firstName, lastName, email}) {
+  const client = await pool.connect();
+  try {
+    const ok = await isElligible({ adminID, agentID});
+    if (!ok) throw new Error('Not Elligible');
+    
     const fields = [];
     const values = [];
-    let i = 1;
-    // const agentID = data.agentID ?? (() => { throw new Error('Missing agentID'); })();
+    let i = 2;
 
     const push = (sqlFragment, value) => {
       fields.push(`${sqlFragment} $${++i}`);
       values.push(value);
     };
 
-    if (data.firstName !== undefined) push('first_name =', data.firstName);
-    if (data.lastName  !== undefined) push('last_name =',  data.lastName);
-    if (data.email     !== undefined) push('email =',      data.email);
-    if (data.role      !== undefined) push('role =',       data.role);
+    if (firstName !== undefined) push('first_name =', firstName);
+    if (lastName  !== undefined) push('last_name =',  lastName);
+    if (email     !== undefined) push('email =',      email);
 
-    if (fields.length === 0) return null; 
+    if (fields.length === 0) {
+      // nothing to update
+      await client.query('ROLLBACK');
+      return null;
+    } 
 
     const params = [agentID, adminID, ...values];
 
@@ -156,12 +259,16 @@ async function updateAgentByAdminID({ adminID, agentID, data }) {
           updated_at = now()
       WHERE agent_id = $1
         AND admin_id = $2
+        AND deleted_at IS NULL
       RETURNING agent_id, first_name, last_name, email, role, created_at, updated_at;
     `;
-
-    const { rows } = await pool.query(sql, params);
+    logQuery(sql, params);
+    const result = await client.query(sql, params);
+    if (result.rowCount === 0) {
+      throw new Error('No rows affected');
+    }
     await client.query("COMMIT");
-    return rows[0] || null;
+    return result.rows[0] || null;
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
       throw e;
@@ -178,14 +285,15 @@ async function hardDeleteByAdminID({adminID, agentID}) {
     const sql = `
       DELETE FROM agents.agent_list
       WHERE agent_id = $1
-      AND admin_id = $2
+      AND admin_id = $2 
+      AND deleted_at IS NULL
       RETURNING agent_id
     `;
 
     const result = await pool.query(sql, [agentID, adminID]);
 
     if (result.rowCount === 0) {
-      // Either don't exist, OR adminID don't own it
+      // Either dont exist, or admin dont own it
       throw new Error('Delete failed: not found or not authorized');
     }
   return result.rows[0].agent_id;
@@ -197,24 +305,26 @@ async function hardDeleteByAdminID({adminID, agentID}) {
   }
 }
 
-async function softDeleteAgent(pool, adminID, agentID) {
-  if (!(await isElligible(adminID, agentID))) throw new Error ('Not Elllgible');
-
+async function softDeleteAgent({adminID, agentID, deleteReason}) {
   const client = await pool.connect();
   try {
+    const ok = await isElligible({ adminID, agentID, client});
+    if (!ok) throw new Error('Not Elligible');
     const sql = `
       UPDATE agents.agent_list
-      SET deleted_at = now(), updated_at = now()
+      SET deleted_by = $2, deleted_at = now(), updated_at = now(), delete_reason = $3
       WHERE agent_id = $1
         AND admin_id = $2
         AND deleted_at IS NULL
       RETURNING agent_id, deleted_at
     `;
-    const result = await pool.query(sql, [agentID, adminID]);
+    await client.query('BEGIN');
+    const result = await client.query(sql, [agentID, adminID, deleteReason]);
 
     if (result.rowCount === 0) {
       throw new Error('Soft delete failed, not found ');
     }
+    await client.query("COMMIT");
     return result.rows[0];
   } catch (e) {
     try { await client.query("ROLLBACK"); } catch {}
@@ -229,6 +339,8 @@ async function softDeleteAgent(pool, adminID, agentID) {
 export { createAgent,
         getAgentByID, getAllAgent, 
         getAgentByIDByAdminID, getAllAgentByAdminID, 
+        looseGetAgentByAdminID, strictGetAgentByAdminID,
+        searchAgentWithAdminID,
         updateAgentByAdminID, 
         softDeleteAgent, 
         hardDeleteByAdminID
