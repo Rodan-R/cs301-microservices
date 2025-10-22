@@ -26,5 +26,5 @@ export const config = {
   },
   corsOrigin: process.env.CORS_ORIGIN || '*',
   rootAdminEmail: process.env.ROOT_ADMIN_EMAIL || 'admin@example.com',
-  rootAdminPassword: process.env.ROOT_ADMIN_PASSWORD || 'ChangeMe!123'
+  // rootAdminPassword: process.env.ROOT_ADMIN_PASSWORD || 'ChangeMe!123'
 };

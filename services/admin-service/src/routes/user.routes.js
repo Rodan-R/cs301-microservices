@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateCognito, authorizeGroups, authorizeRootAdmin } from '../middleware/auth.js';
+import { authenticateCognito, authorizeGroups } from '../middleware/auth.js';
 import * as ctrl from '../controllers/user.controller.js';
 
 const router = Router();

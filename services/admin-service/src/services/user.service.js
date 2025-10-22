@@ -6,7 +6,7 @@ import {
   cognitoDisableUser,
   cognitoEnableUser,
   cognitoResetPassword,
-  cognitoGetUser
+  cognitoIsUserDisabled
 } from './cognito.service.js';
 import { config } from '../config/index.js';
 
