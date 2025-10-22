@@ -70,6 +70,7 @@ export async function cognitoIsUserDisabled(email) {
     // If Enabled is false, user is disabled
     return res.Enabled === false;
   } catch (err) {
+    console.warn("User check failed:", err);
     // If user doesn’t exist, treat as deleted or disabled
     return true;
   }
