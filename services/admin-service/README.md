@@ -30,4 +30,4 @@ Open Swagger at: `http://localhost:8080/docs`
 - `agent`: used by agents (created by admins)
 
 ## Root Admin Bootstrap
-On first start, the service ensures a **root admin** exists using `ROOT_ADMIN_EMAIL` and `ROOT_ADMIN_PASSWORD`.
+On first start, the service ensures a **root admin** exists using `ROOT_ADMIN_EMAIL`
