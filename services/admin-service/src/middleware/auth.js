@@ -17,7 +17,8 @@ export function authenticateCognito(req, _res, next) {
   const header = req.headers['authorization'];
   if (!header) return next(createError(401, 'Missing Authorization header'));
   const [type, token] = header.split(' ');
-  if (type !== 'Bearer' || !token) return next(createError(401, 'Invalid Authorization header'));
+  if (type !== 'Bearer' || !token)
+    return next(createError(401, 'Invalid Authorization header'));
 
   jwt.verify(
     token,
@@ -31,7 +32,7 @@ export function authenticateCognito(req, _res, next) {
       if (err) return next(createError(401, 'Invalid or expired token'));
       req.user = decoded; // contains sub, email, 'cognito:groups', etc.
       next();
-    }
+    },
   );
 }
 
@@ -39,7 +40,7 @@ export function authenticateCognito(req, _res, next) {
 export function authorizeGroups(...groups) {
   return (req, _res, next) => {
     const userGroups = req.user?.['cognito:groups'] || [];
-    const ok = userGroups.some(g => groups.includes(g));
+    const ok = userGroups.some((g) => groups.includes(g));
     if (!ok) return next(createError(403, 'Forbidden'));
     next();
   };
@@ -48,7 +49,10 @@ export function authorizeGroups(...groups) {
 // Root admin only (by email policy)
 export function authorizeRootAdmin(req, _res, next) {
   const email = req.user?.email || req.user?.['email'];
-  if (!email || email.toLowerCase() !== (config.rootAdminEmail || '').toLowerCase()) {
+  if (
+    !email ||
+    email.toLowerCase() !== (config.rootAdminEmail || '').toLowerCase()
+  ) {
     return next(createError(403, 'Root admin only'));
   }
   next();

@@ -21,10 +21,10 @@ paths:
           name: includeAdmins
           schema:
             type: string
-            enum: ["true", "false"]
+            enum: ['true', 'false']
           description: Include admin users (root admin only)
       responses:
-        "200":
+        '200':
           description: List of users
           content:
             application/json:
@@ -39,7 +39,8 @@ paths:
                     email: { type: string }
                     role: { type: string, enum: [admin, agent] }
                     disabled: { type: boolean, example: false }
-                    deletedAt: { type: string, format: date-time, nullable: true }
+                    deletedAt:
+                      { type: string, format: date-time, nullable: true }
     post:
       summary: Create user (admin or agent)
       description: >
@@ -52,13 +53,13 @@ paths:
             schema:
               type: object
               properties:
-                firstName: { type: string, example: "Alice" }
-                lastName:  { type: string, example: "Tan" }
-                email:     { type: string, format: email }
-                role:      { type: string, enum: [admin, agent] }
+                firstName: { type: string, example: 'Alice' }
+                lastName: { type: string, example: 'Tan' }
+                email: { type: string, format: email }
+                role: { type: string, enum: [admin, agent] }
               required: [firstName, lastName, email, role]
       responses:
-        "201": { description: User created in Cognito and database }
+        '201': { description: User created in Cognito and database }
   /users/{id}:
     get:
       summary: Get user details
@@ -71,7 +72,7 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        "200":
+        '200':
           description: User info
           content:
             application/json:
@@ -104,10 +105,10 @@ paths:
               type: object
               properties:
                 firstName: { type: string }
-                lastName:  { type: string }
-                role:      { type: string, enum: [admin, agent] }
+                lastName: { type: string }
+                role: { type: string, enum: [admin, agent] }
       responses:
-        "200": { description: User updated successfully }
+        '200': { description: User updated successfully }
   /users/{id}/delete:
     patch:
       summary: Soft delete user
@@ -129,9 +130,9 @@ paths:
               properties:
                 reason:
                   type: string
-                  example: "User requested account closure"
+                  example: 'User requested account closure'
       responses:
-        "200": { description: User soft-deleted successfully }
+        '200': { description: User soft-deleted successfully }
   /users/disable:
     patch:
       summary: Disable or enable a user in Cognito
@@ -148,13 +149,13 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: "agent@bank.com"
+                  example: 'agent@bank.com'
                 disabled:
                   type: boolean
                   example: true
               required: [email, disabled]
       responses:
-        "200": { description: User status changed in Cognito }
+        '200': { description: User status changed in Cognito }
   /users/reset-password:
     post:
       summary: Admin-initiated password reset via Cognito
@@ -172,10 +173,10 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: "agent@bank.com"
+                  example: 'agent@bank.com'
               required: [email]
       responses:
-        "200": { description: Password reset initiated via Cognito }
+        '200': { description: Password reset initiated via Cognito }
 components:
   securitySchemes:
     bearerAuth:

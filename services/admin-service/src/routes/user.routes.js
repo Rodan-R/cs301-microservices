@@ -13,10 +13,10 @@ router.use(authenticateCognito, authorizeGroups('admin'));
  * and by filtering admins from lists unless includeAdmins=true & actor is root.
  */
 
-router.post('/', ctrl.create);                // create user (root-only if role=admin)
-router.get('/', ctrl.list);                   // list users (admins visible only to root)
-router.get('/:id', ctrl.get);                 // get user (admin target visible only to root)
-router.put('/:id', ctrl.update);              // update user (role change to admin => root-only)
+router.post('/', ctrl.create); // create user (root-only if role=admin)
+router.get('/', ctrl.list); // list users (admins visible only to root)
+router.get('/:id', ctrl.get); // get user (admin target visible only to root)
+router.put('/:id', ctrl.update); // update user (role change to admin => root-only)
 router.patch('/:id/delete', ctrl.softDelete); // soft delete (admin target => root-only)
 
 // “Disable User” -> maps to Cognito disable/enable by email

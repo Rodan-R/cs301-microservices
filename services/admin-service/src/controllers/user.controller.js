@@ -6,7 +6,7 @@ import {
   updateUser,
   softDeleteUser,
   setUserDisabledByCognitoEmail,
-  adminResetPasswordByEmail
+  adminResetPasswordByEmail,
 } from '../services/user.service.js';
 import { createSchema, updateSchema } from '../utils/validators.js';
 
@@ -70,8 +70,13 @@ export async function disable(req, res, next) {
   try {
     const actingEmail = req.user?.email || req.user?.['email'];
     const { email, disabled } = req.body || {};
-    if (typeof disabled !== 'boolean' || !email) throw createError(400, 'email and disabled required');
-    const result = await setUserDisabledByCognitoEmail(email, disabled, actingEmail);
+    if (typeof disabled !== 'boolean' || !email)
+      throw createError(400, 'email and disabled required');
+    const result = await setUserDisabledByCognitoEmail(
+      email,
+      disabled,
+      actingEmail,
+    );
     res.json(result);
   } catch (err) {
     next(err);

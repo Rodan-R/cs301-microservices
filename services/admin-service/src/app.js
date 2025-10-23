@@ -19,8 +19,8 @@ app.set('trust proxy', 1);
 app.use(
   rateLimit({
     windowMs: config.rateLimit.windowMs,
-    max: config.rateLimit.max
-  })
+    max: config.rateLimit.max,
+  }),
 );
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));

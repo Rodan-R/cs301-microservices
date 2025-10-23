@@ -8,6 +8,7 @@ It provides **administrative APIs** for user and role management, leveraging **A
 ## 🚀 Overview
 
 The Admin Service handles:
+
 - 🧑‍💼 **Admin and Agent management**
   - Create, update, list, or soft-delete users
 - 🔐 **Authentication and Authorization**
@@ -22,14 +23,14 @@ The Admin Service handles:
 
 ## 🧩 Tech Stack
 
-| Layer | Technology |
-|-------|-------------|
-| Language | Node.js (v20+) |
-| Framework | Express.js |
-| ORM | Prisma |
-| Database | PostgreSQL |
-| Auth | AWS Cognito (OAuth 2.0 / JWT) |
-| Deployment | Docker + GitLab CI/CD |
+| Layer      | Technology                    |
+| ---------- | ----------------------------- |
+| Language   | Node.js (v20+)                |
+| Framework  | Express.js                    |
+| ORM        | Prisma                        |
+| Database   | PostgreSQL                    |
+| Auth       | AWS Cognito (OAuth 2.0 / JWT) |
+| Deployment | Docker + GitLab CI/CD         |
 
 ---
 
@@ -122,15 +123,15 @@ http://localhost:8080/docs
 
 ## 🧱 Common Endpoints
 
-| Endpoint | Method | Description |
-|-----------|---------|-------------|
-| `/api/auth/login` | POST | Authenticate user (Cognito) |
-| `/api/auth/refresh` | POST | Refresh access token |
-| `/api/users` | GET | List all users (admin only) |
-| `/api/users` | POST | Create new user (admin only) |
-| `/api/users/{id}` | GET | Get specific user |
-| `/api/users/{id}` | PUT | Update user info |
-| `/api/users/{id}/delete` | PATCH | Soft delete a user |
+| Endpoint                 | Method | Description                  |
+| ------------------------ | ------ | ---------------------------- |
+| `/api/auth/login`        | POST   | Authenticate user (Cognito)  |
+| `/api/auth/refresh`      | POST   | Refresh access token         |
+| `/api/users`             | GET    | List all users (admin only)  |
+| `/api/users`             | POST   | Create new user (admin only) |
+| `/api/users/{id}`        | GET    | Get specific user            |
+| `/api/users/{id}`        | PUT    | Update user info             |
+| `/api/users/{id}/delete` | PATCH  | Soft delete a user           |
 
 ---
 
@@ -149,6 +150,7 @@ export function errorHandler(err, _req, res, _next) {
 ```
 
 404s are caught via:
+
 ```js
 export function notFound(_req, res, _next) {
   res.status(404).json({ error: 'Not Found' });
@@ -160,11 +162,14 @@ export function notFound(_req, res, _next) {
 ## 🧩 Deployment (GitLab CI/CD)
 
 ### CI/CD Flow:
-1. **Build stage:** Docker image built & pushed to GitLab Container Registry  
+
+1. **Build stage:** Docker image built & pushed to GitLab Container Registry
 2. **Deploy stage:** Optional — pulls image to EC2 or ECS and runs it
 
 ### Pipeline file:
+
 `.gitlab-ci.yml` handles:
+
 - Docker build
 - Push to GitLab registry
 - (Optional) SSH deploy to EC2
@@ -188,11 +193,11 @@ MIT License © 2025 Scrooge CRM Team
 
 ## 👥 Contributors
 
-| Name | Role |
-|------|------|
-| Ryan Tan | Backend Developer (Admin Service) |
-| Nathan [TBD] | Backend Developer |
-| [Add others] | [Role] |
+| Name         | Role                              |
+| ------------ | --------------------------------- |
+| Ryan Tan     | Backend Developer (Admin Service) |
+| Nathan [TBD] | Backend Developer                 |
+| [Add others] | [Role]                            |
 
 ---
 
