@@ -39,6 +39,17 @@ services:
     volumes:
       - ./agent-service:/usr/src/app
 
+  transaction-service:
+    build:
+      context: ./transaction-service
+      dockerfile: Dockerfile
+    env_file:
+      - ./transaction-service/.env
+    container_name: transaction-service
+    ports:
+      - "3001:3000"
+
+
   # # Optional web UI to poke the DB
   # adminer:
   #   image: adminer
